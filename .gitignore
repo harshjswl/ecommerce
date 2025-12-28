@@ -1,0 +1,14 @@
+# Environment variables
+.env
+
+# Node
+node_modules/
+
+# Java
+target/
+
+# Logs
+*.log
+
+# OS files
+.DS_Store
