@@ -27,7 +27,6 @@ target/
 # Terraform (CRITICAL)
 # =====================
 terraform-local/.terraform/
-terraform-local/*.tfstate
 terraform-local/*.tfstate.backup
 terraform-local/crash.log
 terraform-local/*.exe
