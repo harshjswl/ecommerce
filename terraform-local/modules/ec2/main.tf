@@ -60,14 +60,27 @@ resource "aws_instance" "app" {
   subnet_id              = data.aws_subnets.default.ids[0]
   vpc_security_group_ids = [aws_security_group.app_sg.id]
 
-  user_data = <<-EOF
+user_data = <<-EOF
 #!/bin/bash
 apt update -y
-apt install -y docker.io docker-compose awscli
+
+# Install Docker
+apt install -y docker.io awscli
+
+# Install Docker Compose v2 plugin (IMPORTANT)
+mkdir -p /usr/local/lib/docker/cli-plugins
+curl -SL https://github.com/docker/compose/releases/download/v2.27.0/docker-compose-linux-x86_64 \
+  -o /usr/local/lib/docker/cli-plugins/docker-compose
+chmod +x /usr/local/lib/docker/cli-plugins/docker-compose
+
+# Enable Docker
 systemctl enable docker
 systemctl start docker
+
+# Allow ubuntu user to run docker
 usermod -aG docker ubuntu
 EOF
+
 
   tags = {
     Name = "ecommerce-ec2"
