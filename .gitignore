@@ -1,14 +1,33 @@
+# =====================
 # Environment variables
+# =====================
 .env
 
+# =====================
 # Node
+# =====================
 node_modules/
 
-# Java
+# =====================
+# Java / Spring Boot
+# =====================
 target/
 
+# =====================
 # Logs
+# =====================
 *.log
 
+# =====================
 # OS files
+# =====================
 .DS_Store
+
+# =====================
+# Terraform (CRITICAL)
+# =====================
+terraform-local/.terraform/
+terraform-local/*.tfstate
+terraform-local/*.tfstate.backup
+terraform-local/crash.log
+terraform-local/*.exe
