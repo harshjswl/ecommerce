@@ -124,18 +124,17 @@ jobs:
           mkdir -p /home/ubuntu/ecommerce
 
     # =============================
-    # 1️⃣1️⃣ COPY FILES TO EC2
-    # =============================
+# 1️⃣1️⃣ COPY FILES TO EC2
+# =============================
     - name: Copy docker-compose files to EC2
       uses: appleboy/scp-action@v0.1.7
       with:
         host: ${{ steps.ec2.outputs.ec2_ip }}
         username: ubuntu
         key: ${{ secrets.EC2_KEY }}
-        source: |
-          docker-compose.yml
-          .env
+        source: "docker-compose.yml,.env"
         target: /home/ubuntu/ecommerce
+
 
 
     # =============================
