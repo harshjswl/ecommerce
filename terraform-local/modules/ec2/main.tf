@@ -9,10 +9,12 @@ data "aws_subnets" "default" {
   }
 }
 
-
+# =============================
+# SECURITY GROUP (SAFE)
+# =============================
 resource "aws_security_group" "app_sg" {
-  name   = "ecommerce-sg"
-  vpc_id = data.aws_vpc.default.id
+  name_prefix = "ecommerce-sg-"   # 👈 duplicate issue fix
+  vpc_id      = data.aws_vpc.default.id
 
   ingress {
     from_port   = 80
@@ -41,24 +43,52 @@ resource "aws_security_group" "app_sg" {
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
+
+  tags = {
+    Name = "ecommerce-sg"
+  }
 }
 
+# =============================
+# EC2 INSTANCE
+# =============================
 resource "aws_instance" "app" {
-  ami           = "ami-02b8269d5e85954ef" # Ubuntu 22.04 ap-south-1
+  ami           = "ami-02b8269d5e85954ef" # Ubuntu 22.04 (ap-south-1)
   instance_type = var.instance_type
   key_name      = var.key_name
 
-  subnet_id = data.aws_subnets.default.ids[0]
+  subnet_id              = data.aws_subnets.default.ids[0]
   vpc_security_group_ids = [aws_security_group.app_sg.id]
 
-  # 👇 Hardcoded user_data
   user_data = <<-EOF
     #!/bin/bash
+    set -e
+
+    # Update system
     apt update -y
-    apt install -y docker.io docker-compose
+
+    # Install Docker
+    apt install -y docker.io
     systemctl enable docker
     systemctl start docker
     usermod -aG docker ubuntu
+
+    # Install Docker Compose v2
+    mkdir -p /usr/local/lib/docker/cli-plugins
+    curl -SL https://github.com/docker/compose/releases/download/v2.27.0/docker-compose-linux-x86_64 \
+      -o /usr/local/lib/docker/cli-plugins/docker-compose
+    chmod +x /usr/local/lib/docker/cli-plugins/docker-compose
+
+    # Install AWS CLI v2
+    apt install -y unzip curl
+    curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+    unzip awscliv2.zip
+    ./aws/install
+
+    # Verify installs
+    docker --version
+    docker compose version
+    aws --version
   EOF
 
   tags = {
