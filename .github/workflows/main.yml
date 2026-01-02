@@ -137,6 +137,7 @@ jobs:
           .env
         target: /home/ubuntu/ecommerce
 
+
     # =============================
     # 1️⃣2️⃣ DEPLOY ON EC2
     # =============================
