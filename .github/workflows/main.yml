@@ -87,6 +87,17 @@ jobs:
       uses: aws-actions/amazon-ecr-login@v2
 
     # =============================
+    # CREATE .env FILE FOR DOCKER COMPOSE
+    # =============================
+    - name: Create .env file
+      run: |
+        echo "POSTGRES_DB=${{ secrets.POSTGRES_DB }}" > .env
+        echo "POSTGRES_USER=${{ secrets.POSTGRES_USER }}" >> .env
+        echo "POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}" >> .env
+        echo "SPRING_DATASOURCE_URL=${{ secrets.SPRING_DATASOURCE_URL }}" >> .env
+ 
+    
+    # =============================
     # 7️⃣ BUILD & PUSH DOCKER IMAGES
     # =============================
     - name: Build Docker Images
