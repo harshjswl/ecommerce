@@ -5,34 +5,24 @@ services:
     restart: always
     env_file:
       - .env
-    environment:
-      POSTGRES_DB: ${POSTGRES_DB}
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
       - "5432:5432"
 
   backend:
-    build:
-      context: ./Ecommerce-Backend
+    image: 323001028681.dkr.ecr.ap-south-1.amazonaws.com/ecommerce-backend:latest
     container_name: spring_backend
     restart: always
     env_file:
       - .env
-    environment:
-      SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL}
-      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
-      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
     ports:
       - "8080:8080"
     depends_on:
       - postgres
 
   frontend:
-    build:
-      context: ./Ecommerce-Frontend
+    image: 323001028681.dkr.ecr.ap-south-1.amazonaws.com/ecommerce-frontend:latest
     container_name: react_frontend
     restart: always
     ports:
