@@ -128,10 +128,12 @@ jobs:
         username: ubuntu
         key: ${{ secrets.EC2_KEY }}
         script: |
+          cd /home/ubuntu/ecommerce
+
           aws ecr get-login-password --region ap-south-1 \
           | docker login --username AWS --password-stdin \
-            $(aws sts get-caller-identity --query Account --output text).dkr.ecr.ap-south-1.amazonaws.com
+            323001028681.dkr.ecr.ap-south-1.amazonaws.com
 
-          docker compose pull
-          docker compose down
-          docker compose up -d
+          docker-compose pull
+          docker-compose down
+          docker-compose up -d

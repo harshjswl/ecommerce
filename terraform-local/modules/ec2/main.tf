@@ -61,35 +61,14 @@ resource "aws_instance" "app" {
   vpc_security_group_ids = [aws_security_group.app_sg.id]
 
   user_data = <<-EOF
-    #!/bin/bash
-    set -e
+#!/bin/bash
+apt update -y
+apt install -y docker.io docker-compose awscli
+systemctl enable docker
+systemctl start docker
+usermod -aG docker ubuntu
+EOF
 
-    # Update system
-    apt update -y
-
-    # Install Docker
-    apt install -y docker.io
-    systemctl enable docker
-    systemctl start docker
-    usermod -aG docker ubuntu
-
-    # Install Docker Compose v2
-    mkdir -p /usr/local/lib/docker/cli-plugins
-    curl -SL https://github.com/docker/compose/releases/download/v2.27.0/docker-compose-linux-x86_64 \
-      -o /usr/local/lib/docker/cli-plugins/docker-compose
-    chmod +x /usr/local/lib/docker/cli-plugins/docker-compose
-
-    # Install AWS CLI v2
-    apt install -y unzip curl
-    curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
-    unzip awscliv2.zip
-    ./aws/install
-
-    # Verify installs
-    docker --version
-    docker compose version
-    aws --version
-  EOF
 
   tags = {
     Name = "ecommerce-ec2"
