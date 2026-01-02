@@ -15,7 +15,7 @@ jobs:
 
     steps:
     # =============================
-    # 1️⃣ CHECKOUT CODE
+    # 1️⃣ CHECKOUT
     # =============================
     - name: Checkout Code
       uses: actions/checkout@v4
@@ -33,7 +33,7 @@ jobs:
       run: aws sts get-caller-identity
 
     # =============================
-    # SET JAVA 21
+    # 3️⃣ JAVA SETUP
     # =============================
     - name: Set up JDK 21
       uses: actions/setup-java@v4
@@ -42,14 +42,14 @@ jobs:
         java-version: '21'
 
     # =============================
-    # 3️⃣ BUILD BACKEND
+    # 4️⃣ BUILD BACKEND
     # =============================
     - name: Build Backend (Maven)
       working-directory: Ecommerce-Backend
       run: mvn clean package -DskipTests
 
     # =============================
-    # 4️⃣ SAST - SONARQUBE
+    # 5️⃣ SAST – SONARQUBE
     # =============================
     - name: SonarQube Scan
       uses: sonarsource/sonarqube-scan-action@v2
@@ -63,7 +63,7 @@ jobs:
           -Dsonar.java.binaries=Ecommerce-Backend/target
 
     # =============================
-    # 5️⃣ TERRAFORM
+    # 6️⃣ TERRAFORM
     # =============================
     - name: Setup Terraform
       uses: hashicorp/setup-terraform@v3
@@ -77,11 +77,9 @@ jobs:
       run: terraform plan
 
     - name: Terraform Apply
-      id: tf
       working-directory: terraform-local
       run: terraform apply -auto-approve
 
-    # 🔑 GET EC2 IP FROM TERRAFORM OUTPUT
     - name: Get EC2 Public IP
       id: ec2
       working-directory: terraform-local
@@ -89,13 +87,13 @@ jobs:
         echo "ec2_ip=$(terraform output -raw ec2_public_ip)" >> $GITHUB_OUTPUT
 
     # =============================
-    # 6️⃣ LOGIN TO ECR
+    # 7️⃣ LOGIN TO ECR
     # =============================
     - name: Login to Amazon ECR
       uses: aws-actions/amazon-ecr-login@v2
 
     # =============================
-    # CREATE .env FILE
+    # 8️⃣ CREATE .env FILE
     # =============================
     - name: Create .env file
       run: |
@@ -105,7 +103,7 @@ jobs:
         echo "SPRING_DATASOURCE_URL=${{ secrets.SPRING_DATASOURCE_URL }}" >> .env
 
     # =============================
-    # 7️⃣ BUILD & PUSH DOCKER IMAGES
+    # 9️⃣ BUILD & PUSH IMAGES
     # =============================
     - name: Build Docker Images
       run: docker compose build
@@ -113,13 +111,34 @@ jobs:
     - name: Push Docker Images
       run: docker compose push
 
-
-
-
-
+    # =============================
+    # 🔟 PREPARE EC2 DIRECTORY
+    # =============================
+    - name: Create app directory on EC2
+      uses: appleboy/ssh-action@v1.0.3
+      with:
+        host: ${{ steps.ec2.outputs.ec2_ip }}
+        username: ubuntu
+        key: ${{ secrets.EC2_KEY }}
+        script: |
+          mkdir -p /home/ubuntu/ecommerce
 
     # =============================
-    # 8️⃣ DEPLOY TO EC2
+    # 1️⃣1️⃣ COPY FILES TO EC2
+    # =============================
+    - name: Copy docker-compose files to EC2
+      uses: appleboy/scp-action@v0.1.7
+      with:
+        host: ${{ steps.ec2.outputs.ec2_ip }}
+        username: ubuntu
+        key: ${{ secrets.EC2_KEY }}
+        source: |
+          docker-compose.yml
+          .env
+        target: /home/ubuntu/ecommerce
+
+    # =============================
+    # 1️⃣2️⃣ DEPLOY ON EC2
     # =============================
     - name: Deploy on EC2
       uses: appleboy/ssh-action@v1.0.3
@@ -135,5 +154,5 @@ jobs:
             323001028681.dkr.ecr.ap-south-1.amazonaws.com
 
           docker-compose pull
-          docker-compose down
+          docker-compose down || true
           docker-compose up -d

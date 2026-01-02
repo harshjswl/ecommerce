@@ -13,8 +13,15 @@ data "aws_subnets" "default" {
 # SECURITY GROUP (SAFE)
 # =============================
 resource "aws_security_group" "app_sg" {
-  name_prefix = "ecommerce-sg-"   # 👈 duplicate issue fix
+  name_prefix = "ecommerce-sg-"
   vpc_id      = data.aws_vpc.default.id
+
+  ingress {
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
 
   ingress {
     from_port   = 80
@@ -26,13 +33,6 @@ resource "aws_security_group" "app_sg" {
   ingress {
     from_port   = 8080
     to_port     = 8080
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  ingress {
-    from_port   = 22
-    to_port     = 22
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
@@ -53,7 +53,7 @@ resource "aws_security_group" "app_sg" {
 # EC2 INSTANCE
 # =============================
 resource "aws_instance" "app" {
-  ami           = "ami-02b8269d5e85954ef" # Ubuntu 22.04 (ap-south-1)
+  ami           = "ami-02b8269d5e85954ef" # Ubuntu 22.04 ap-south-1
   instance_type = var.instance_type
   key_name      = var.key_name
 
@@ -68,7 +68,6 @@ systemctl enable docker
 systemctl start docker
 usermod -aG docker ubuntu
 EOF
-
 
   tags = {
     Name = "ecommerce-ec2"
