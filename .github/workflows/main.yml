@@ -1,32 +1,100 @@
-name: OIDC Test (GitHub → AWS)
-
-
-
-
+name: DevSecOps Full Pipeline
 
 on:
   push:
     branches:
-      - main   
+      - main
 
 permissions:
-  id-token: write   
+  id-token: write
   contents: read
 
 jobs:
-  oidc-test:
+  deploy:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+    # -----------------------------
+    # CHECKOUT
+    # -----------------------------
+    - name: Checkout Code
+      uses: actions/checkout@v4
 
-      - name: Configure AWS credentials using OIDC
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: arn:aws:iam::323001028681:role/harsh-oidc
-          aws-region: ap-south-1
+    # -----------------------------
+    # AWS AUTH (OIDC)
+    # -----------------------------
+    - name: Configure AWS Credentials (OIDC)
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+        aws-region: ${{ secrets.AWS_REGION }}
 
-      - name: Verify AWS identity (STS)
-        run: |
-          aws sts get-caller-identity
+    - name: Verify AWS Identity
+      run: aws sts get-caller-identity
+
+    # -----------------------------
+    # SAST - SONARQUBE
+    # -----------------------------
+    - name: SonarQube Scan
+      uses: sonarsource/sonarqube-scan-action@v2
+      env:
+        SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+      with:
+        args: >
+          -Dsonar.projectKey=ecommerce
+          -Dsonar.sources=.
+
+    # -----------------------------
+    # TERRAFORM
+    # -----------------------------
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v3
+
+    - name: Terraform Init
+      working-directory: terraform-local
+      run: terraform init
+
+    - name: Terraform Apply
+      id: tf
+      working-directory: terraform-local
+      run: terraform apply -auto-approve
+
+    - name: Get EC2 IP
+      id: ec2
+      working-directory: terraform-local
+      run: |
+        echo "EC2_IP=$(terraform output -raw ec2_public_ip)" >> $GITHUB_ENV
+
+    # -----------------------------
+    # ECR LOGIN
+    # -----------------------------
+    - name: Login to Amazon ECR
+      uses: aws-actions/amazon-ecr-login@v2
+
+    # -----------------------------
+    # BUILD & PUSH IMAGES
+    # -----------------------------
+    - name: Build Docker Images
+      run: docker compose build
+
+    - name: Push Docker Images
+      run: docker compose push
+
+    # -----------------------------
+    # DEPLOY TO EC2
+    # -----------------------------
+    - name: Deploy on EC2
+      uses: appleboy/ssh-action@v1.0.3
+      with:
+        host: ${{ env.EC2_IP }}
+        username: ${{ secrets.EC2_USER }}
+        key: ${{ secrets.EC2_KEY }}
+        script: |
+          aws ecr get-login-password --region ${{ secrets.AWS_REGION }} \
+          | docker login --username AWS --password-stdin \
+            $(aws sts get-caller-identity --query Account --output text).dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com
+
+          docker compose pull
+          docker compose down
+          docker compose up -d
