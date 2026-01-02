@@ -33,6 +33,16 @@ jobs:
       run: aws sts get-caller-identity
 
     # =============================
+    # SET JAVA 21 (REQUIRED)
+    # =============================
+    - name: Set up JDK 21
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'temurin'
+        java-version: '21'
+
+
+    # =============================
     # 3️⃣ BUILD BACKEND (JAVA) ⭐ IMPORTANT
     # =============================
     - name: Build Backend (Maven)
