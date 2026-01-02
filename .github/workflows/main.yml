@@ -38,8 +38,8 @@ jobs:
     - name: SonarQube Scan
       uses: sonarsource/sonarqube-scan-action@v2
       env:
-        SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
-        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        SONAR_HOST_URL: ${{ secrets.SONARQUBE_PORT }}
+        SONAR_TOKEN: ${{ secrets.SONARQUBE_TOKEN }}
       with:
         args: >
           -Dsonar.projectKey=ecommerce
