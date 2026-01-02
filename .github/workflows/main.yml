@@ -42,14 +42,14 @@ jobs:
         java-version: "21"
 
     # =============================
-    # 4️⃣ BUILD BACKEND (JAR)
+    # 4️⃣ BUILD BACKEND JAR
     # =============================
     - name: Build Backend (Maven)
       working-directory: Ecommerce-Backend
       run: mvn clean package -DskipTests
 
     # =============================
-    # 5️⃣ SAST – SONARQUBE
+    # 5️⃣ SONARQUBE
     # =============================
     - name: SonarQube Scan
       uses: sonarsource/sonarqube-scan-action@v2
@@ -63,7 +63,7 @@ jobs:
           -Dsonar.java.binaries=Ecommerce-Backend/target
 
     # =============================
-    # 6️⃣ TERRAFORM (INFRA)
+    # 6️⃣ TERRAFORM
     # =============================
     - name: Setup Terraform
       uses: hashicorp/setup-terraform@v3
@@ -89,7 +89,7 @@ jobs:
       uses: aws-actions/amazon-ecr-login@v2
 
     # =============================
-    # 8️⃣ BUILD & TAG IMAGES (IMPORTANT FIX)
+    # 8️⃣ BUILD & TAG DOCKER IMAGES
     # =============================
     - name: Build Backend Image
       run: |
@@ -112,40 +112,7 @@ jobs:
         docker push 323001028681.dkr.ecr.ap-south-1.amazonaws.com/ecommerce-frontend:latest
 
     # =============================
-    # 🔟 PREPARE EC2 DIRECTORY
-    # =============================
-    - name: Prepare EC2 directory
-      uses: appleboy/ssh-action@v1.0.3
-      with:
-        host: ${{ steps.ec2.outputs.ec2_ip }}
-        username: ubuntu
-        key: ${{ secrets.EC2_KEY }}
-        script: |
-          mkdir -p /home/ubuntu/ecommerce
-
-    # =============================
-    # 1️⃣1️⃣ COPY docker-compose + .env
-    # =============================
-    - name: Copy docker-compose files to EC2
-      uses: appleboy/scp-action@v0.1.7
-      with:
-        host: ${{ steps.ec2.outputs.ec2_ip }}
-        username: ubuntu
-        key: ${{ secrets.EC2_KEY }}
-        source: "docker-compose.yml"
-        target: /home/ubuntu/ecommerce
-
-    - name: Copy env file to EC2
-      uses: appleboy/scp-action@v0.1.7
-      with:
-        host: ${{ steps.ec2.outputs.ec2_ip }}
-        username: ubuntu
-        key: ${{ secrets.EC2_KEY }}
-        source: ".env"
-        target: /home/ubuntu/ecommerce
-
-    # =============================
-    # 1️⃣2️⃣ DEPLOY ON EC2
+    # 🔟 DEPLOY ON EC2 (FINAL FIX)
     # =============================
     - name: Deploy on EC2
       uses: appleboy/ssh-action@v1.0.3
@@ -154,7 +121,22 @@ jobs:
         username: ubuntu
         key: ${{ secrets.EC2_KEY }}
         script: |
+          sudo apt update -y
+          sudo apt install -y git awscli
+
+          if [ ! -d "/home/ubuntu/ecommerce" ]; then
+            git clone https://github.com/harshjswl/ecommerce.git /home/ubuntu/ecommerce
+          fi
+
           cd /home/ubuntu/ecommerce
+          git pull origin main
+
+          cat <<EOF > .env
+          POSTGRES_DB=${{ secrets.POSTGRES_DB }}
+          POSTGRES_USER=${{ secrets.POSTGRES_USER }}
+          POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}
+          SPRING_DATASOURCE_URL=${{ secrets.SPRING_DATASOURCE_URL }}
+          EOF
 
           aws ecr get-login-password --region ap-south-1 \
           | docker login --username AWS --password-stdin \
