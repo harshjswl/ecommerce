@@ -33,7 +33,7 @@ jobs:
       run: aws sts get-caller-identity
 
     # =============================
-    # SET JAVA 21 (REQUIRED)
+    # SET JAVA 21
     # =============================
     - name: Set up JDK 21
       uses: actions/setup-java@v4
@@ -42,14 +42,14 @@ jobs:
         java-version: '21'
 
     # =============================
-    # 3️⃣ BUILD BACKEND (JAVA)
+    # 3️⃣ BUILD BACKEND
     # =============================
     - name: Build Backend (Maven)
       working-directory: Ecommerce-Backend
       run: mvn clean package -DskipTests
 
     # =============================
-    # 4️⃣ SAST - SONARQUBE SCAN
+    # 4️⃣ SAST - SONARQUBE
     # =============================
     - name: SonarQube Scan
       uses: sonarsource/sonarqube-scan-action@v2
@@ -63,7 +63,7 @@ jobs:
           -Dsonar.java.binaries=Ecommerce-Backend/target
 
     # =============================
-    # 5️⃣ TERRAFORM SETUP
+    # 5️⃣ TERRAFORM
     # =============================
     - name: Setup Terraform
       uses: hashicorp/setup-terraform@v3
@@ -77,8 +77,16 @@ jobs:
       run: terraform plan
 
     - name: Terraform Apply
+      id: tf
       working-directory: terraform-local
       run: terraform apply -auto-approve
+
+    # 🔑 GET EC2 IP FROM TERRAFORM OUTPUT
+    - name: Get EC2 Public IP
+      id: ec2
+      working-directory: terraform-local
+      run: |
+        echo "ec2_ip=$(terraform output -raw ec2_public_ip)" >> $GITHUB_OUTPUT
 
     # =============================
     # 6️⃣ LOGIN TO ECR
@@ -87,7 +95,7 @@ jobs:
       uses: aws-actions/amazon-ecr-login@v2
 
     # =============================
-    # CREATE .env FILE FOR DOCKER COMPOSE
+    # CREATE .env FILE
     # =============================
     - name: Create .env file
       run: |
@@ -95,25 +103,14 @@ jobs:
         echo "POSTGRES_USER=${{ secrets.POSTGRES_USER }}" >> .env
         echo "POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}" >> .env
         echo "SPRING_DATASOURCE_URL=${{ secrets.SPRING_DATASOURCE_URL }}" >> .env
- 
-    
+
     # =============================
     # 7️⃣ BUILD & PUSH DOCKER IMAGES
     # =============================
     - name: Build Docker Images
-      env:
-        POSTGRES_DB: ${{ secrets.POSTGRES_DB }}
-        POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
-        POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
-        SPRING_DATASOURCE_URL: ${{ secrets.SPRING_DATASOURCE_URL }}
       run: docker compose build
 
     - name: Push Docker Images
-      env:
-        POSTGRES_DB: ${{ secrets.POSTGRES_DB }}
-        POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
-        POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
-        SPRING_DATASOURCE_URL: ${{ secrets.SPRING_DATASOURCE_URL }}
       run: docker compose push
 
     # =============================
@@ -122,7 +119,7 @@ jobs:
     - name: Deploy on EC2
       uses: appleboy/ssh-action@v1.0.3
       with:
-        host: ${{ env.EC2_IP }}
+        host: ${{ steps.ec2.outputs.ec2_ip }}
         username: ubuntu
         key: ${{ secrets.EC2_KEY }}
         script: |
