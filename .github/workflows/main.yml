@@ -103,7 +103,7 @@ jobs:
         echo "SPRING_DATASOURCE_URL=${{ secrets.SPRING_DATASOURCE_URL }}" >> .env
 
     # =============================
-    # 9️⃣ BUILD & PUSH IMAGES
+    # 9️⃣ BUILD & PUSH DOCKER IMAGES
     # =============================
     - name: Build Docker Images
       run: docker compose build
@@ -126,7 +126,7 @@ jobs:
     # =============================
     # 1️⃣1️⃣ COPY FILES TO EC2
     # =============================
-    - name: Copy docker-compose files to EC2
+    - name: Copy docker-compose and env to EC2
       uses: appleboy/scp-action@v0.1.7
       with:
         host: ${{ steps.ec2.outputs.ec2_ip }}
