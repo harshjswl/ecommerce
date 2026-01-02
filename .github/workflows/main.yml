@@ -38,12 +38,11 @@ jobs:
     - name: Set up JDK 21
       uses: actions/setup-java@v4
       with:
-        distribution: 'temurin'
+        distribution: temurin
         java-version: '21'
 
-
     # =============================
-    # 3️⃣ BUILD BACKEND (JAVA) ⭐ IMPORTANT
+    # 3️⃣ BUILD BACKEND (JAVA)
     # =============================
     - name: Build Backend (Maven)
       working-directory: Ecommerce-Backend
@@ -55,7 +54,6 @@ jobs:
     - name: SonarQube Scan
       uses: sonarsource/sonarqube-scan-action@v2
       env:
-        # NOTE: naam same rakha hai jaise tumne banaya
         SONAR_HOST_URL: ${{ secrets.SONARQUBE_PORT }}
         SONAR_TOKEN: ${{ secrets.SONARQUBE_TOKEN }}
       with:
@@ -93,9 +91,19 @@ jobs:
     # 7️⃣ BUILD & PUSH DOCKER IMAGES
     # =============================
     - name: Build Docker Images
+      env:
+        POSTGRES_DB: ${{ secrets.POSTGRES_DB }}
+        POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
+        POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+        SPRING_DATASOURCE_URL: ${{ secrets.SPRING_DATASOURCE_URL }}
       run: docker compose build
 
     - name: Push Docker Images
+      env:
+        POSTGRES_DB: ${{ secrets.POSTGRES_DB }}
+        POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
+        POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+        SPRING_DATASOURCE_URL: ${{ secrets.SPRING_DATASOURCE_URL }}
       run: docker compose push
 
     # =============================
